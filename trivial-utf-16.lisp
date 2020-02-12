@@ -43,8 +43,8 @@
    (mapcan #'codepoint-as-utf-16 (coerce unicode-string 'list))
    '(vector (unsigned-byte 16))))
 
-(defun decode-utf-16 (utf-16-string &key strict)
-  "Turn a vector of UTF-16 code units into a vector of Unicode code points. Keyword parameter :strict controls whether to bail on unpaired surrogates and defaults to false."
+(defun decode-utf-16 (utf-16-string)
+  "Turn a vector of UTF-16 code units into a vector of Unicode code points. Passes unpaired surrogate codepoints straight through."
   (let ((result '()))
     (dotimes (i (length utf-16-string))
       (let ((codepoint (elt utf-16-string i)))

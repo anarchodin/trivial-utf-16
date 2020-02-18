@@ -61,7 +61,7 @@
                     (> i 0)
                     (typep (elt utf-16-string (1- i)) 'high-surrogate)))
               (t (push codepoint result)))))
-    (nreverse result)))
+    (coerce (nreverse result) 'unicode-string)))
 
 (declaim (inline from-unicode-string))
 (defun from-unicode-string (unicode-string)

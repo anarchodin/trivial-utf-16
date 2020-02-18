@@ -1,8 +1,10 @@
 (in-package :trivial-utf-16)
 
-(defconstant +native-utf-16+
-  (if (= char-code-limit #x10000) 't nil)
-  "Whether or not the implementation uses UTF-16 natively.")
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (case char-code-limit
+    (#x10000 (pushnew :utf-16 *features*))
+    (#x110000 (pushnew :utf-32 *features*))
+    (t (error "Unexpected char-code-limit; Unicode support seems unlikely."))))
 
 (deftype high-surrogate ()
   "A Unicode High Surrogate."
@@ -61,16 +63,22 @@
               (t (push codepoint result)))))
     (nreverse result)))
 
+(declaim (inline from-unicode-string))
 (defun from-unicode-string (unicode-string)
   "Take a vector of Unicode code points and turn it into a Lisp string."
-  (map 'string #'code-char (if +native-utf-16+
-                               (encode-utf-16 unicode-string)
-                               unicode-string)))
+  #+utf-16 (setf unicode-string (encode-utf-16 unicode-string))
+  (let* ((string-size (length unicode-string))
+         (lisp-string (make-array string-size :element-type 'character)))
+    (dotimes (i string-size)
+      (setf (aref lisp-string i) (code-char (aref unicode-string i))))
+    lisp-string))
 
+(declaim (inline to-unicode-string))
 (defun to-unicode-string (lisp-string)
   "Take a Lisp string and turn it into a vector of Unicode code points."
-  (let ((encoded-string (map 'vector #'char-code lisp-string)))
-    (coerce (if +native-utf-16+
-                (decode-utf-16 encoded-string)
-                encoded-string)
-            'unicode-string)))
+  (let* ((string-size (length lisp-string))
+         (unicode-string (make-array string-size)))
+    (dotimes (i string-size)
+      (setf (aref unicode-string i) (char-code (aref lisp-string i))))
+    #+utf-16 (setf unicode-string (decode-utf-16 unicode-string))
+    unicode-string))
